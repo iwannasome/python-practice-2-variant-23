@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python-practice-2-variant-23"
+version = "1.0.0"
+description = "Практика 2: HTTP API вычислительных задач, вариант 23"
+requires-python = ">=3.11"
+dependencies = ["tinydb==4.8.2"]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8,<10", "hypothesis>=6.100,<7", "coverage>=7,<8",
+  "ruff>=0.9,<1", "pycodestyle>=2.12,<3", "radon>=6,<7",
+  "flake8>=7,<8", "pep8-naming>=0.14,<1", "build>=1,<2",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 79
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "C90", "N"]
+ignore = ["N802"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.coverage.run]
+branch = true
+source = ["practice2"]
+
+[tool.coverage.report]
+show_missing = true
