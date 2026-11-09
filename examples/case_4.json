@@ -1,0 +1,10 @@
+{
+  "time": 0.5,
+  "gravity": 9.81,
+  "balls": [
+    {
+      "height": 5,
+      "velocity": -2
+    }
+  ]
+}
