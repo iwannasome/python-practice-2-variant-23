@@ -56,6 +56,7 @@ class ApiMachine(RuleBasedStateMachine):
         self.bad_query()
         self.filters()
         self.routing()
+        self.unknown_method("HEAD")
         self.advance_clock(WINDOW - FIRST)
         self.check_state()
         self.advance_clock(FIRST)
@@ -201,20 +202,39 @@ class ApiMachine(RuleBasedStateMachine):
                 self.client.request("POST", path)
             assert caught.value.status == status
 
+    @rule(method=st.sampled_from(["PATCH", "OPTIONS", "HEAD", "CUSTOM"]))
+    def unknown_method(self, method):
+        """Любой метод проходит проверку заголовков до маршрутизации."""
+        path = "/api/read/member?uid=1"
+        with pytest.raises(ApiError) as caught:
+            self.client.request(method, path, headers={})
+        assert caught.value.status == NOT_ACCEPTABLE
+        with pytest.raises(ApiError) as caught:
+            self.client.request(method, path)
+        assert caught.value.status == METHOD_NOT_ALLOWED
+
     @invariant()
     def check_state(self):
         """Сопоставить девять API-операций с эталоном."""
         assert self.client.collect_member() == list(self.members.values())
+        self.check_members()
+        self.check_tasks()
+        assert self.client.collect_report() == self.expected_report()
+
+    def check_members(self):
+        """Проверить чтение участников и выборку их заданий."""
         for uid, member in self.members.items():
             assert self.client.read_member(uid) == member
             expected = [r for r in self.tasks.values() if r["member"] == uid]
             assert self.client.collect_task(uid) == expected
+
+    def check_tasks(self):
+        """Проверить задания и связанные ответы через HTTP."""
         for uid, task in self.tasks.items():
             assert self.client.read_task(uid) == task
             expected = [self.responses[uid]]
             assert self.client.collect_response(uid) == expected
             assert self.client.read_response(uid) == self.responses[uid]
-        assert self.client.collect_report() == self.expected_report()
 
     def expected_report(self):
         """Прямое тройное соединение без функций промышленной модели."""

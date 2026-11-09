@@ -5,10 +5,13 @@ import io
 import tokenize
 from pathlib import Path
 
+from radon.complexity import cc_visit
+
 MAX_LINES = 1000
 MAX_WIDTH = 79
 MAX_FUNCTION_LINES = 40
 MAX_ARGUMENTS = 7
+MAX_COMPLEXITY = 10
 
 
 def is_number_literal(node):
@@ -47,6 +50,7 @@ def audit_file(path):
     assert all(len(line) <= MAX_WIDTH for line in lines), path
     tokens = tokenize.generate_tokens(io.StringIO(text).readline)
     assert not any(token.type == tokenize.COMMENT for token in tokens), path
+    assert all(b.complexity <= MAX_COMPLEXITY for b in cc_visit(text)), path
     for node in ast.walk(ast.parse(text)):
         if isinstance(node, ast.Compare):
             audit_comparison(node, path)
@@ -65,6 +69,7 @@ def main():
     print(f"PASS: {len(files)} файлов, строки <=79, функции <=40")
     print("аргументы <=7, обычных комментариев нет, файлы <=1000 строк")
     print("PASS: нет числовых литералов в операндах сравнений")
+    print("PASS: сложность Radon <=10")
 
 
 if __name__ == "__main__":

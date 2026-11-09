@@ -40,7 +40,8 @@ class ApiClient:
                 return json.load(response)
         except HTTPError as error:
             with error:
-                payload = json.load(error)
+                body = error.read()
+                payload = json.loads(body) if body else {"error": error.reason}
             raise ApiError(error.code, payload) from error
 
     def save_member(self, uid, values):

@@ -50,9 +50,13 @@ def test_nine_routes_and_restart(tmp_path):
         assert response["status"] == "test"
         assert client.collect_report() == [["127.0.0.1", 0, "a"]]
     with running_api(path) as client:
-        assert client.read_member(1) == member
-        assert client.read_task(1) == task
-        assert client.read_response(1) == response
+        expected = [member, task, response]
+        actual = [
+            client.read_member(1),
+            client.read_task(1),
+            client.read_response(1),
+        ]
+        assert actual == expected
 
 
 @pytest.mark.parametrize("headers", [{}, {"Accept": "text/json"}])

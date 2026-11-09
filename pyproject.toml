@@ -28,7 +28,10 @@ line-length = 79
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "C90", "N"]
-ignore = ["N802"]
+
+
+[tool.ruff.lint.pep8-naming]
+ignore-names = ["do_GET", "do_POST", "do_PUT", "do_DELETE"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10

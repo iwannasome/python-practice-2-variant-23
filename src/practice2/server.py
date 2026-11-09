@@ -13,6 +13,12 @@ REQUIRED_HEADERS = (("Accept", "text/json"), ("Accept-Language", "ru"))
 class ApiHandler(BaseHTTPRequestHandler):
     """Проверять заголовки, маршрутизировать запрос и выдавать JSON."""
 
+    def __getattr__(self, name):
+        """Направить любой HTTP-метод через проверку заголовков."""
+        if name.startswith("do_"):
+            return self.handle_api
+        return super().__getattribute__(name)
+
     def log_message(self, format_string, *args):
         """Не засорять stdout CLI стандартным HTTP-журналом."""
 
@@ -61,7 +67,8 @@ class ApiHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
-        self.wfile.write(body)
+        if self.command != "HEAD":
+            self.wfile.write(body)
 
 
 def make_server(model, host="127.0.0.1", port=8024):
