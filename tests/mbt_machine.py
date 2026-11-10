@@ -158,7 +158,9 @@ class ApiMachine(RuleBasedStateMachine):
             if headers.get("Accept") != "text/json"
             else "Accept-Language"
         )
-        assert caught.value.payload["error"].startswith(f"Требуется {first}:")
+        assert caught.value.payload["error"].startswith(
+            "Требуется {}:".format(first)
+        )
 
     @rule()
     def bad_query(self):

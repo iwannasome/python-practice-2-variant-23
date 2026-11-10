@@ -35,7 +35,10 @@ def serve(args):
     storage = storage_class(args.database)
     model = Model(storage, test_mode=args.test_mode)
     server = make_server(model, args.host, args.port)
-    print(f"HTTP API: http://{args.host}:{server.server_port}", flush=True)
+    print(
+        "HTTP API: http://{}:{}".format(args.host, server.server_port),
+        flush=True,
+    )
     try:
         server.serve_forever()
     except KeyboardInterrupt:

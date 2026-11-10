@@ -34,7 +34,9 @@ class ApiSession:
             daemon=True,
         )
         self.thread.start()
-        self.client = ApiClient(f"http://127.0.0.1:{self.server.server_port}")
+        self.client = ApiClient(
+            "http://127.0.0.1:{}".format(self.server.server_port)
+        )
 
     def stop(self):
         """Дождаться остановки потока и закрыть хранилище."""
