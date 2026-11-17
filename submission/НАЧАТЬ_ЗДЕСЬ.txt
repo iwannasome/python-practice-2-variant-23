@@ -1,0 +1,65 @@
+ПРАКТИЧЕСКАЯ РАБОТА №2 — ВАРИАНТ 23
+Сысоев Даниил Денисович, ИКБО-71-24
+
+ТЕМА
+Веб-приложение с HTTP API для асинхронной генерации штрих-кодов
+EAN-13 в формате SVG.
+
+СОСТАВ
+Отчёт_Практика_2_Сысоев_Вариант_23.pdf — готовый отчёт.
+Отчёт_Практика_2_Сысоев_Вариант_23.docx — редактируемый отчёт.
+Пример_EAN13.svg — готовое изображение для показа.
+ИНСТРУКЦИЯ_ЗАЩИТЫ_ПО_ФОТО.md — команды для всех пяти вопросов.
+python-practice-2-variant-23/ — исходный Git-репозиторий с историей.
+Проверки/ — журналы тестов, покрытия и четыре примера.
+SHA256SUMS.txt — контрольные суммы файлов комплекта.
+
+БЫСТРЫЙ ЗАПУСК В UBUNTU
+Открой терминал и перейди в папку проекта внутри этого комплекта:
+  cd python-practice-2-variant-23
+  python3 -m venv .venv
+  .venv/bin/python -m pip install -r requirements-dev.txt
+  .venv/bin/python -m pip install --no-deps -e .
+
+Если pip сообщает «Missing dependencies for SOCKS support», повтори:
+  env -u ALL_PROXY -u all_proxy -u HTTP_PROXY -u http_proxy -u HTTPS_PROXY -u https_proxy .venv/bin/python -m pip install -r requirements-dev.txt
+  env -u ALL_PROXY -u all_proxy -u HTTP_PROXY -u http_proxy -u HTTPS_PROXY -u https_proxy .venv/bin/python -m pip install --no-deps -e .
+
+ЭТАП 1: КОМАНДНАЯ СТРОКА
+  mkdir -p data
+  ./run.sh compute examples/case_1.json > data/case_1.svg
+  ./run.sh compute examples/case_2.json
+  ./run.sh compute examples/case_3.json
+  ./run.sh compute examples/case_4.json
+В первом примере вход «590123412345» даёт EAN-13 «5901234123457».
+SVG можно открыть браузером.
+
+ЭТАП 2: HTTP API С ФАЙЛОВОЙ БАЗОЙ
+  ./run.sh server --backend file --database data/file.json
+
+ЭТАП 3: HTTP API С TINYDB
+  ./run.sh server --backend tinydb --database data/tinydb.json
+
+Сервер слушает http://127.0.0.1:8024. В другом терминале выполни
+четыре curl-команды из README.md: создание Member, создание Task,
+чтение Response и запрос отчёта. У Task сначала completed=0,
+у Response status=pending, затем status=success и SVG в response.
+При активном прокси используй curl --noproxy '*'. Ctrl+C завершает сервер.
+
+ПРОВЕРКИ
+  make lint
+  make test
+  make mbt-file
+  make mbt-tiny
+  make build
+
+MBT может занимать десятки секунд: Hypothesis многократно создаёт
+запросы к HTTP API. HTML-покрытие после прогона лежит в
+htmlcov-file/index.html и htmlcov-tiny/index.html.
+Если сборка сообщает «Missing dependencies for SOCKS support», запусти:
+  env -u ALL_PROXY -u all_proxy -u HTTP_PROXY -u http_proxy -u HTTPS_PROXY -u https_proxy make build
+
+Публичный репозиторий:
+https://github.com/iwannasome/python-practice-2-variant-23
+Показывать сдаваемый проект из этого комплекта. Отдельная локальная
+папка «Разбор_практики_2_для_защиты» служит только для изучения.

@@ -1,0 +1,67 @@
+{
+  "topic": "Веб-приложение с HTTP API для асинхронной генерации штрих-кодов EAN-13 в формате SVG",
+  "repository": "https://github.com/iwannasome/python-practice-2-variant-23",
+  "branch": "codex/practice-2",
+  "commit": "0622ff396cbe83577e9221536b681b09cb876df9",
+  "tests": {
+    "passed": 27,
+    "failed": 0
+  },
+  "style": {
+    "pycodestyle": "PASS",
+    "ruff": "PASS",
+    "ruff_format": "PASS",
+    "flake8_pep8_naming": "PASS",
+    "ast_tokenize_audit": "PASS",
+    "max_radon_complexity": 10
+  },
+  "mbt": {
+    "file": {
+      "generated_http_tests": true,
+      "branch_coverage": true,
+      "routes": 9,
+      "total_project_percent": 65.85,
+      "modules": {
+        "client.py": 100.0,
+        "model.py": 100.0,
+        "routes.py": 100.0,
+        "server.py": 100.0
+      }
+    },
+    "tiny": {
+      "generated_http_tests": true,
+      "branch_coverage": true,
+      "routes": 9,
+      "total_project_percent": 64.91,
+      "modules": {
+        "client.py": 100.0,
+        "model.py": 100.0,
+        "routes.py": 100.0,
+        "server.py": 100.0
+      }
+    }
+  },
+  "artifact_checks": {
+    "report_pages": 5,
+    "all_pages_visually_checked": true,
+    "source_copy_matches_commit": true,
+    "wheel_has_barcode_and_no_physics": true,
+    "real_http_tinydb_subprocess": "PASS",
+    "fault_injection_found_counterexample": "seed(ip='', tags='0')",
+    "readme_curl_http_tinydb_scenario": "PASS",
+    "mbt_fault_reproduction_script": "PASS"
+  },
+  "github_actions": {
+    "status": "completed",
+    "conclusion": "success",
+    "headSha": "0622ff396cbe83577e9221536b681b09cb876df9",
+    "url": "https://github.com/iwannasome/python-practice-2-variant-23/actions/runs/44048842844",
+    "checks": [
+      "installation",
+      "make lint",
+      "make test",
+      "make mbt-file",
+      "make mbt-tiny"
+    ]
+  }
+}

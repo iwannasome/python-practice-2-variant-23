@@ -1,0 +1,79 @@
+rm -rf build
+.venv/bin/python -m build --wheel
+* Creating isolated environment: venv+pip...
+* Installing packages in isolated environment:
+  - setuptools>=68
+* Getting build dependencies for wheel...
+running egg_info
+writing src/python_practice_2_variant_23.egg-info/PKG-INFO
+writing dependency_links to src/python_practice_2_variant_23.egg-info/dependency_links.txt
+writing requirements to src/python_practice_2_variant_23.egg-info/requires.txt
+writing top-level names to src/python_practice_2_variant_23.egg-info/top_level.txt
+reading manifest file 'src/python_practice_2_variant_23.egg-info/SOURCES.txt'
+writing manifest file 'src/python_practice_2_variant_23.egg-info/SOURCES.txt'
+* Installed build dependency versions:
+  - setuptools==84.2.1
+* Building wheel...
+running bdist_wheel
+running build
+running build_py
+creating build/lib/practice2
+copying src/practice2/model.py -> build/lib/practice2
+copying src/practice2/barcode.py -> build/lib/practice2
+copying src/practice2/storage.py -> build/lib/practice2
+copying src/practice2/schema.py -> build/lib/practice2
+copying src/practice2/tiny_storage.py -> build/lib/practice2
+copying src/practice2/client.py -> build/lib/practice2
+copying src/practice2/__init__.py -> build/lib/practice2
+copying src/practice2/server.py -> build/lib/practice2
+copying src/practice2/runner.py -> build/lib/practice2
+copying src/practice2/cli.py -> build/lib/practice2
+copying src/practice2/routes.py -> build/lib/practice2
+copying src/practice2/__main__.py -> build/lib/practice2
+running egg_info
+writing src/python_practice_2_variant_23.egg-info/PKG-INFO
+writing dependency_links to src/python_practice_2_variant_23.egg-info/dependency_links.txt
+writing requirements to src/python_practice_2_variant_23.egg-info/requires.txt
+writing top-level names to src/python_practice_2_variant_23.egg-info/top_level.txt
+reading manifest file 'src/python_practice_2_variant_23.egg-info/SOURCES.txt'
+writing manifest file 'src/python_practice_2_variant_23.egg-info/SOURCES.txt'
+installing to build/bdist.linux-x86_64/wheel
+running install
+running install_lib
+creating build/bdist.linux-x86_64/wheel
+creating build/bdist.linux-x86_64/wheel/practice2
+copying build/lib/practice2/model.py -> build/bdist.linux-x86_64/wheel/./practice2
+copying build/lib/practice2/barcode.py -> build/bdist.linux-x86_64/wheel/./practice2
+copying build/lib/practice2/storage.py -> build/bdist.linux-x86_64/wheel/./practice2
+copying build/lib/practice2/schema.py -> build/bdist.linux-x86_64/wheel/./practice2
+copying build/lib/practice2/tiny_storage.py -> build/bdist.linux-x86_64/wheel/./practice2
+copying build/lib/practice2/client.py -> build/bdist.linux-x86_64/wheel/./practice2
+copying build/lib/practice2/__init__.py -> build/bdist.linux-x86_64/wheel/./practice2
+copying build/lib/practice2/server.py -> build/bdist.linux-x86_64/wheel/./practice2
+copying build/lib/practice2/runner.py -> build/bdist.linux-x86_64/wheel/./practice2
+copying build/lib/practice2/cli.py -> build/bdist.linux-x86_64/wheel/./practice2
+copying build/lib/practice2/routes.py -> build/bdist.linux-x86_64/wheel/./practice2
+copying build/lib/practice2/__main__.py -> build/bdist.linux-x86_64/wheel/./practice2
+running install_egg_info
+Copying src/python_practice_2_variant_23.egg-info to build/bdist.linux-x86_64/wheel/./python_practice_2_variant_23-1.0.0-py3.12.egg-info
+running install_scripts
+creating build/bdist.linux-x86_64/wheel/python_practice_2_variant_23-1.0.0.dist-info/WHEEL
+creating '/home/zhorakaras/Documents/ChatGPT/разработка серверный частей Питон/python-practice-2-variant-23/dist/.tmp-jycxcdo3/python_practice_2_variant_23-1.0.0-py3-none-any.whl' and adding 'build/bdist.linux-x86_64/wheel' to it
+adding 'practice2/__init__.py'
+adding 'practice2/__main__.py'
+adding 'practice2/barcode.py'
+adding 'practice2/cli.py'
+adding 'practice2/client.py'
+adding 'practice2/model.py'
+adding 'practice2/routes.py'
+adding 'practice2/runner.py'
+adding 'practice2/schema.py'
+adding 'practice2/server.py'
+adding 'practice2/storage.py'
+adding 'practice2/tiny_storage.py'
+adding 'python_practice_2_variant_23-1.0.0.dist-info/METADATA'
+adding 'python_practice_2_variant_23-1.0.0.dist-info/WHEEL'
+adding 'python_practice_2_variant_23-1.0.0.dist-info/top_level.txt'
+adding 'python_practice_2_variant_23-1.0.0.dist-info/RECORD'
+removing build/bdist.linux-x86_64/wheel
+Successfully built python_practice_2_variant_23-1.0.0-py3-none-any.whl

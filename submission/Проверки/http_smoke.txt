@@ -1,0 +1,7 @@
+README curl-сценарий: PASS
+Member UID: 1
+Task completed при PUT: 0
+Response status после фонового CLI: success
+SVG: корректный XML, EAN-13 5901234123457
+Формула отчёта: PASS
+TinyDB JSON-файл: PASS

@@ -1,0 +1,34 @@
+
+Временная ошибка: ApiClient.save_task теряет поле tags.
+Чистый проект не изменяется. Ожидается контрпример MBT.
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____________________________ TestFileApi.runTest ______________________________
+/home/zhorakaras/Documents/ChatGPT/разработка серверный частей Питон/python-practice-2-variant-23/.venv/lib/python3.12/site-packages/hypothesis/stateful.py:558: in runTest
+    run_state_machine_as_test(cls, settings=self.settings)
+/home/zhorakaras/Documents/ChatGPT/разработка серверный частей Питон/python-practice-2-variant-23/.venv/lib/python3.12/site-packages/hypothesis/stateful.py:308: in run_state_machine_as_test
+    state_machine_test()
+/home/zhorakaras/Documents/ChatGPT/разработка серверный частей Питон/python-practice-2-variant-23/.venv/lib/python3.12/site-packages/hypothesis/stateful.py:154: in run_state_machine
+    @given(st.data())
+               ^^^
+tests/mbt_machine.py:49: in seed
+    self.add_task(tags=tags)
+tests/mbt_machine.py:81: in add_task
+    def add_task(self, tags):
+               ^^^^^^^^^^^^^
+/home/zhorakaras/Documents/ChatGPT/разработка серверный частей Питон/python-practice-2-variant-23/.venv/lib/python3.12/site-packages/hypothesis/stateful.py:1025: in rule_wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+tests/mbt_machine.py:93: in add_task
+    assert self.client.save_task(uid, values) == expected
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError
+E   Failing test case: <state machine>
+E   state = ApiMachine()
+E   state.seed(ip='', tags='0')
+E   state.teardown()
+=========================== short test summary info ============================
+FAILED tests/test_mbt_file.py::TestFileApi::runTest - AssertionError
+1 failed in 67.50s (0:01:07)
+
+PASS: MBT нашёл ошибку только во временной копии.

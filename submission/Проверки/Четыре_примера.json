@@ -1,0 +1,34 @@
+[
+  {
+    "input_file": "case_1.json",
+    "input": {
+      "ean13": "590123412345"
+    },
+    "ean13": "5901234123457",
+    "svg_valid_xml": true
+  },
+  {
+    "input_file": "case_2.json",
+    "input": {
+      "ean13": "4006381333931"
+    },
+    "ean13": "4006381333931",
+    "svg_valid_xml": true
+  },
+  {
+    "input_file": "case_3.json",
+    "input": {
+      "ean13": "000000000000"
+    },
+    "ean13": "0000000000000",
+    "svg_valid_xml": true
+  },
+  {
+    "input_file": "case_4.json",
+    "input": {
+      "ean13": "978030640615"
+    },
+    "ean13": "9780306406157",
+    "svg_valid_xml": true
+  }
+]

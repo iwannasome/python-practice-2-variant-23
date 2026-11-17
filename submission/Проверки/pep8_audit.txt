@@ -1,0 +1,11 @@
+.venv/bin/python -m pycodestyle src tests
+.venv/bin/ruff check src tests
+All checks passed!
+.venv/bin/ruff format --check src tests
+23 files already formatted
+.venv/bin/flake8 src tests
+.venv/bin/python tests/audit_project.py
+PASS: 23 файлов, строки <=79, функции <=40
+аргументы <=7, обычных комментариев нет, файлы <=1000 строк
+PASS: нет числовых литералов в операндах сравнений
+PASS: сложность Radon <=10
