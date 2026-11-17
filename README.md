@@ -1,350 +1,243 @@
-# Практическая работа 2 Вариант 23
+# Практическая работа №2, вариант 23
 
-Сысоев Даниил Денисович, ИКБО-71-24. РТУ МИРЭА, 2026.  
+Сысоев Даниил Денисович, ИКБО-71-24. РТУ МИРЭА, 2026.
 Дисциплина: «Прикладная разработка серверных частей веб-приложений
 на языке Питон». Преподаватель: Горчаков Артём Владимирович.
 
-Публичный репозиторий: [python-practice-2-variant-23](https://github.com/iwannasome/python-practice-2-variant-23).
+Тема вычислительной задачи: **веб-приложение с HTTP API для асинхронной
+генерации штрих-кодов EAN-13 в формате SVG**.
+
+Публичный репозиторий:
+https://github.com/iwannasome/python-practice-2-variant-23
 
 Основание: сборник индивидуальных вариантов практического задания №2,
-ИКБО-71-24, страницы 4–5, 83–86, рисунок и таблица 23.
+ИКБО-71-24, вариант 23, с. 83–86. Этап 1 принимает входной файл и
+печатает SVG; этап 2 принимает задания через HTTP и запускает CLI
+через subprocess; этап 3 заменяет собственное файловое хранилище
+на TinyDB. Девять маршрутов и формула отчёта соответствуют таблице 23.
 
-Проект принимает вычислительные задания по HTTP, запускает консольную
-утилиту через `subprocess`, сохраняет участников, задания и ответы на диск.
-Этап 2 использует собственное JSON-хранилище, этап 3 — библиотеку TinyDB.
-Модель, HTTP-маршруты, API-клиент и независимый эталон MBT общие.
+## Установка
 
-## Установка и запуск в Ubuntu
+Нужны Python 3.11+ и python3-venv.
 
-Требуется Python 3.11+ и пакет `python3-venv`.
-
-```sh
+~~~
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements-dev.txt
 .venv/bin/python -m pip install --no-deps -e .
-./run.sh compute examples/case_1.json
-./run.sh server --backend tinydb --database data/tinydb.json
-```
+~~~
 
-Завершение сервера: Ctrl+C. Данные остаются на диске.
-Для этапа 2 используется отдельный файл:
+## Этап 1: EAN-13 → SVG в командной строке
 
-```sh
-./run.sh server --backend file --database data/file.json
-```
+Вход — JSON-объект с единственным полем ean13. Значение — строка
+из 12 цифр (контрольная цифра рассчитывается) или из 13 цифр
+(контрольная цифра проверяется). Строковый тип сохраняет ведущие нули.
+Любая иная длина, недесятичный символ или неверная контрольная цифра
+отклоняются с сообщением в stderr и ненулевым кодом завершения.
 
-Форматы хранилищ не следует смешивать в одном файле при экспериментах.
-Один файл открывается одним процессом сервера. Модель использует RLock,
-а HTTPServer последовательно обслуживает запросы. Задание выполняется
-синхронно: PUT завершается после сохранения результата.
+Для первых 12 цифр веса справа чередуются 3 и 1; контрольная цифра
+дополняет взвешенную сумму до кратного 10. Первая цифра задаёт
+чередование левых наборов A/B (в коде LEFT/MIXED), справа используется
+набор C (RIGHT). Охранные последовательности: 101, 01010, 101.
+Итог содержит 95 модулей, левую тихую зону 11 модулей и правую
+7 модулей. SVG состоит из полос rect и подписи EAN-13. Наличие
+правильной контрольной цифры не подтверждает регистрацию номера в GS1.
 
-Тестовый режим сохраняет Task и Response без вызова `subprocess`:
+Четыре входных примера находятся в examples/:
 
-```sh
-./run.sh server --test-mode --database data/test.json
-```
+| Файл | Исходное значение | Смысл |
+| --- | --- | --- |
+| case_1.json | 590123412345 | вычисление контрольной цифры |
+| case_2.json | 4006381333931 | проверка готового EAN-13 |
+| case_3.json | 000000000000 | сохранение ведущих нулей |
+| case_4.json | 978030640615 | другое значение первой цифры |
 
-У тестового Response: `status="test"`, `response='{"test_mode": true}'`,
-`failure=""`, `duration=0`. Это явная заглушка результата вычисления.
-
-## Этап 1 Вычислительная утилита
-
-Вычислительная часть — вертикальное движение независимых шариков до
-первого касания пола. Модель использует метры, секунды и м/с; направление
-вверх положительно. Сопротивление воздуха, отскоки и столкновения шариков
-не моделируются. После касания пола высота и скорость равны нулю.
-
-Входной JSON-файл содержит:
-
-- `time`: конечное неотрицательное число, момент наблюдения в секундах;
-- `gravity`: конечное положительное число, по умолчанию 9.81 м/с²;
-- `balls`: непустой список объектов с `height` и необязательной `velocity`;
-- `height`: конечная неотрицательная начальная высота;
-- `velocity`: конечная начальная скорость, по умолчанию 0.
-
-Логические значения не принимаются как числа. Некорректный JSON, файл
-или физический параметр дают ненулевой код завершения и сообщение в stderr.
-Результат успешного вычисления — один JSON в stdout.
-
-До касания пола:
-
-```text
-y(t) = h0 + v0*t - g*t²/2
-v(t) = v0 - g*t
-t_impact = (v0 + sqrt(v0² + 2*g*h0)) / g
-```
-
-Для каждого шарика возвращаются `height`, `velocity`, `impact_time`,
-`state` (`airborne` или `landed`). Числа округляются до 8 знаков после
-запятой; размерности результата соответствуют входным данным.
-
-Четыре обязательных примера находятся в `examples/`:
-
-| Файл | h0 | v0 | t | Высота | Скорость | Состояние |
-|---|---:|---:|---:|---:|---:|---|
-| case_1.json | 20 | 0 | 1 | 15.095 | -9.81 | airborne |
-| case_2.json | 0 | 10 | 1 | 5.095 | 0.19 | airborne |
-| case_3.json | 10 | 0 | 3 | 0 | 0 | landed |
-| case_4.json | 5 | -2 | 0.5 | 2.77375 | -6.905 | airborne |
-
-```sh
+~~~
 ./run.sh compute examples/case_1.json
 ./run.sh compute examples/case_2.json
 ./run.sh compute examples/case_3.json
 ./run.sh compute examples/case_4.json
-```
+~~~
 
-Самостоятельный интерфейс утилиты, который вызывает сервер:
+Команда compute выводит только SVG в stdout. Запустить отдельную
+CLI-утилиту, которую вызывает сервер, можно так:
 
-```sh
+~~~
 .venv/bin/python -m practice2.cli examples/case_1.json
-```
+mkdir -p data
+./run.sh compute examples/case_1.json > data/case_1.svg
+~~~
 
-## Этап 2 HTTP API
+Функция complete_ean13 проверяет и дополняет номер,
+encode_modules создаёт 95-битный рисунок, render_svg строит SVG,
+generate проверяет структуру JSON.
 
-Обработчик наследует `http.server.BaseHTTPRequestHandler`.
-Название `BaseHttpRequestHandler` в сборнике трактуется как этот класс
-стандартной библиотеки Python. FastAPI в варианте 23 не требуется.
+## Этап 2: HTTP API и асинхронное выполнение
 
-Каждый запрос содержит `Accept: text/json` и `Accept-Language: ru`.
-Заголовки проверяются именно в этом порядке. Отсутствующее или неверное
-значение даёт 406 с JSON-сообщением о первом нарушении.
-Корректная операция возвращает 200. Тело ответа имеет тип
-`application/json; charset=utf-8`; длина задаётся в байтах.
+Сервер основан на стандартном BaseHTTPRequestHandler.
+Все входные поля передаются через путь и строку запроса, а не тело.
+Для любого метода обязательны Accept: text/json и Accept-Language: ru
+именно в этом порядке. Нарушение первого найденного заголовка даёт
+406 и JSON-сообщение. Успешная операция возвращает 200 и JSON.
 
-| № | Метод | Путь | Параметры query | Метод модели и клиента |
-|---|---|---|---|---|
-| 1.1 | PUT | /api/save/member/:uid | поля Member | save_member(uid, values) |
-| 1.2 | POST | /api/collect/member | фильтры Member | collect_member(filters=None) |
-| 1.3 | GET | /api/read/member | uid | read_member(uid) |
-| 2.1 | PUT | /api/save/task/:uid | поля Task | save_task(uid, values) |
-| 2.2 | POST | /api/collect/task/:member | фильтры Task | collect_task(member, filters=None) |
-| 2.3 | GET | /api/read/task | uid | read_task(uid) |
-| 3.1 | POST | /api/collect/response/:task | фильтры Response | collect_response(task, filters=None) |
-| 3.2 | GET | /api/read/response | uid | read_response(uid) |
-| 4.1 | POST | /api/collect/report | нет | collect_report() |
+| № | Метод | Маршрут | Метод клиента и модели |
+| --- | --- | --- | --- |
+| 1.1 | PUT | /api/save/member/:uid | save_member |
+| 1.2 | POST | /api/collect/member | collect_member |
+| 1.3 | GET | /api/read/member | read_member |
+| 2.1 | PUT | /api/save/task/:uid | save_task |
+| 2.2 | POST | /api/collect/task/:member | collect_task |
+| 2.3 | GET | /api/read/task | read_task |
+| 3.1 | POST | /api/collect/response/:task | collect_response |
+| 3.2 | GET | /api/read/response | read_response |
+| 4.1 | POST | /api/collect/report | collect_report |
 
-Все входные данные передаются в пути и query, тела запросов не используются.
-Незаполненный фильтр возвращает все подходящие записи; несколько полей
-фильтра соединяются логическим AND. Сравнение точное, с учётом типа.
-Коллекции сортируются по uid, отсутствующая коллекция — пустой список.
-Параметр пути `member` или `task` задаёт обязательную область поиска.
+Схема Member: uid:int, datetime:int, ip:str, locale:str.
+Схема Task: uid:int, datetime:int, input:str, member:int, tags:str,
+completed:int, launched:int.
+Схема Response: uid:int, datetime:int, response:str, status:str,
+failure:str, task:int, duration:int. Время — Unix-секунды,
+duration — целые миллисекунды. UID положителен и уникален в таблице.
+Task.member и Response.task — внешние ссылки.
 
-Дополнительные ошибочные ситуации: 400 — неверные параметры,
-404 — отсутствующая запись или маршрут, 405 — неверный метод,
-409 — повторный первичный ключ. Повторяющиеся query-параметры и
-неизвестные поля отклоняются. Ошибка вычисления сохраняется в Response
-со `status="error"`; корректно принятое задание остаётся успешной
-операцией API с кодом 200.
+Task.input содержит JSON-текст, например строку
+{"ean13": "590123412345"}. При PUT 2.1 сервер сохраняет Task
+и Response со status="pending", затем немедленно возвращает Task.
+Фоновый исполнитель записывает вход во временный файл и запускает
+sys.executable -m practice2.cli <file> через subprocess без shell.
+После окончания он записывает SVG в Response.response, status="success"
+и время завершения в Task.completed. Ошибка CLI даёт status="error"
+и текст в failure. Следовательно, read_response может сначала вернуть
+pending, а затем success/error. Продолжительность ограничена
+10 секундами для дочернего процесса. При остановке сервера он ждёт
+уже принятые фоновые задачи и закрывает БД.
 
-### Схема данных
+Тестовый режим не запускает subprocess и сразу сохраняет Response
+со status="test", response='{"test_mode": true}' и duration=0.
+Он нужен для детерминированного MBT.
 
-| Сущность | Поля и типы |
-|---|---|
-| Member | uid:int, datetime:int, ip:str, locale:str |
-| Task | uid:int, datetime:int, input:str, member:int, tags:str, completed:int, launched:int |
-| Response | uid:int, datetime:int, response:str, status:str, failure:str, task:int, duration:int |
+Для этапа 2:
 
-UID — положительный целый ключ, уникальный внутри своей таблицы.
-Task.member ссылается на существующего Member, Response.task — на Task.
-IP и локаль сохраняются строками, дополнительные ограничения формата
-схемой задания не вводятся. Времена — целые Unix-секунды.
+~~~
+./run.sh server --backend file --database data/file.json
+~~~
 
-При создании Member обязательных полей кроме uid нет: datetime по умолчанию
-равен текущему времени, ip пустой, locale `ru`. Для Task обязательны
-`member` и `input`; tags по умолчанию пустой. Необязательный datetime можно
-задать явно. `launched` и `completed` сервер устанавливает по времени
-начала и окончания вычисления. Они имеют тип int, как в ER-схеме.
+Для этапа 3:
 
-Task.input содержит JSON-текст входного файла. Сервер записывает его во
-временный файл, вызывает `sys.executable -m practice2.cli <file>` через
-`subprocess.run` и удаляет временный каталог. Оболочка не запускается.
-Тайм-аут процесса 10 секунд. Успешный stdout становится Response.response,
-stderr сохраняется в failure. duration измеряется в целых миллисекундах
-монотонными часами. Время создания Response берётся после вычисления.
+~~~
+./run.sh server --backend tinydb --database data/tinydb.json
+~~~
 
-На каждое новое задание автоматически создаётся один Response с тем же uid
-и ссылкой task на задание. Публичного маршрута создания Response в задании
-нет; изменение и удаление записей в таблице 23 также не предусмотрены.
+По умолчанию сервер слушает 127.0.0.1:8024. Остановить: Ctrl+C.
+Не смешивайте форматы FileStorage и TinyDB в одном файле.
+Параметры: --host, --port, --database, --backend, --test-mode.
 
-### Пример запросов
+Пример запросов из второго терминала; --noproxy исключает локальный
+сервер из системного прокси:
 
-Сервер должен работать в отдельном терминале.
-
-```sh
-curl -X PUT 'http://127.0.0.1:8024/api/save/member/1?ip=127.0.0.1&locale=ru' \
+~~~
+curl --noproxy '*' -sS -X PUT \
+  'http://127.0.0.1:8024/api/save/member/1?ip=127.0.0.1&locale=ru' \
   -H 'Accept: text/json' -H 'Accept-Language: ru'
 
-curl -X PUT 'http://127.0.0.1:8024/api/save/task/1' --get \
-  --data-urlencode 'member=1' --data-urlencode 'tags=fall' \
-  --data-urlencode 'input={"time":1,"balls":[{"height":20}]}' \
+curl --noproxy '*' -sS -X PUT \
+  'http://127.0.0.1:8024/api/save/task/1' --get \
+  --data-urlencode 'member=1' \
+  --data-urlencode 'tags=ean13' \
+  --data-urlencode 'input={"ean13":"590123412345"}' \
   -H 'Accept: text/json' -H 'Accept-Language: ru'
 
-curl 'http://127.0.0.1:8024/api/read/response?uid=1' \
+curl --noproxy '*' -sS \
+  'http://127.0.0.1:8024/api/read/response?uid=1' \
   -H 'Accept: text/json' -H 'Accept-Language: ru'
 
-curl -X POST 'http://127.0.0.1:8024/api/collect/report' \
+curl --noproxy '*' -sS -X POST \
+  'http://127.0.0.1:8024/api/collect/report' \
   -H 'Accept: text/json' -H 'Accept-Language: ru'
-```
+~~~
 
-Пример через класс клиента:
+Повторяйте read_response до смены pending. Для нового показа берите
+новую БД или новые UID. Неизвестные поля, повторяющиеся параметры
+и плохие типы дают 400; отсутствие записи — 404; неверный метод —
+405; повторный ключ — 409.
 
-```python
-import json
+ApiClient имеет те же девять имён методов, что и Model.
+ApiClient.request позволяет проверить ошибки и заголовки напрямую.
 
-from practice2.client import ApiClient
+## Формула отчёта 23
 
-client = ApiClient()
-client.save_member(2, {"ip": "::1", "locale": "ru"})
-client.save_task(2, {
-    "member": 2,
-    "input": json.dumps({"time": 3, "balls": [{"height": 10}]}),
-    "tags": "fall",
-})
-print(client.read_response(2))
-print(client.collect_report())
-```
+collect_report строит множество уникальных троек
+[Member.ip, Response.duration, Task.tags]. Соединения выполняются
+по Task.member = Member.uid и Response.task = Task.uid.
+Строгое условие Response.datetime > now - 540 исключает ответ
+ровно девять минут назад. Результат отсортирован. Формула не
+фильтрует status, поэтому ожидающий Response тоже участвует
+с текущим duration=0. В тестовом режиме часы управляемы.
 
-`ApiClient.request(method, path, params=None, headers=None)` позволяет
-проверить ошибочные запросы. `headers=None` включает обязательные
-заголовки, `{}` отправляет запрос без них. ApiError содержит `status` и
-`payload`; сетевые ошибки остаются стандартными исключениями urllib.
+## Этап 3: TinyDB
 
-### Формула отчёта
+FileStorage хранит три таблицы в собственном JSON-файле и заменяет
+его атомарно. TinyStorage использует библиотеку tinydb, её JSONStorage,
+таблицы и поиск по Query().uid. Оба адаптера имеют all, write, close.
+Модель, клиент и маршруты при замене адаптера не меняются.
+Файл data/tinydb.json можно открыть как обычный JSON после записи.
+Один файл БД обслуживается одним процессом сервера.
 
-Результат — множество уникальных троек `[Member.ip, Response.duration,
-Task.tags]`. Используется строгое условие `Response.datetime > now - 540`:
-ответ ровно 9 минут назад исключается. Верхнего ограничения `<= now`
-в формуле нет, поэтому ответ с будущим временем включается.
+## Проверки и сборка
 
-Модель обходит Response, присоединяет Task по `task` и Member по `member`.
-При соблюдении внешних ключей это эквивалентно правому соединению T и R
-с последующим внутренним соединением с M в формуле 23.
-Множество удаляет дубликаты проекции; результат сортируется.
-
-## Этап 3 TinyDB
-
-`TinyStorage` использует именно библиотеку `tinydb`, её JSONStorage,
-документные таблицы и `Query().uid`. Три операции адаптера совпадают с
-FileStorage: `all(entity)`, `write(entity, row)`, `close()`.
-Внедрение адаптера в Model заменяет слой хранения без переписывания API.
-`FileStorage.write` использует временный файл, fsync и os.replace;
-`TinyStorage.write` — upsert документа по прикладному uid.
-
-## Тестирование и отдельное покрытие MBT
-
-```sh
+~~~
 make lint
 make test
 make mbt-file
 make mbt-tiny
-```
-
-`tests/mbt_machine.py` реализует RuleBasedStateMachine. Через настоящий
-ApiClient выполняются генерируемые действия: создание, чтение, поиск,
-фильтрация, дубликаты, неверные ссылки, неверные запросы и заголовки,
-изменение тестовых часов и перезапуск сервера с повторным открытием БД.
-Инвариант сопоставляет ответы с независимыми Python-словарями. Эталон
-отчёта использует прямое тройное соединение, не вызывает Model и storage.
-
-Инициализация использует генерируемые строки и создаёт дубликат проекции.
-В каждом сценарии проверяются обе стороны границы 540 секунд и будущее
-время. После этого Hypothesis выбирает последующие правила и данные.
-Настройки: max_examples=25, stateful_step_count=25, deadline=None,
-derandomize=True. Эти пределы не означают ровно 625 исполненных действий.
-
-Для этапа 3 наследуется та же машина; заменяется только адаптер хранилища.
-Тесты обычного набора не подмешиваются в отдельные измерения MBT:
-
-```sh
-.venv/bin/python -m coverage run --branch --data-file=.coverage.file \
-  -m pytest tests/test_mbt_file.py -q
-.venv/bin/python -m coverage json --data-file=.coverage.file \
-  -o coverage-file.json
-.venv/bin/python tests/check_mbt_coverage.py coverage-file.json
-```
-
-Аналогично для `tests/test_mbt_tiny.py` и `.coverage.tiny`.
-`make mbt-file` и `make mbt-tiny` также строят HTML-отчёты
-`htmlcov-file/index.html`, `htmlcov-tiny/index.html`.
-
-Автоматический контроль требует 100% строк и ветвей `model.py`,
-`routes.py`, `server.py`, `client.py` в каждом отдельном MBT-прогоне.
-Общий процент проекта ниже: MBT работает в тестовом режиме и не должен
-запускать CLI, физику или основной цикл сервера из командной строки.
-Неиспользуемый альтернативный адаптер также остаётся в полном отчёте.
-Ничего не исключено из измерения для повышения процента.
-
-## Строгие правила оформления
-
-`make lint` запускает pycodestyle, Ruff, Ruff Formatter, flake8 с
-pep8-naming и независимый AST/tokenize-аудит всего кода src и tests.
-Проверяются строки до 79 символов, docstring до 72, 4 пробела отступа,
-имена PEP 8, порядок импортов, сложность до 10, файлы до 1000 строк,
-функции до 40 строк, до 7 аргументов без self/cls, отсутствие обычных
-комментариев и числовых литералов в сравнениях.
-
-Сохранены только необходимые исключения: W503 не используется как правило
-стиля, а do_GET/do_POST/do_PUT/do_DELETE сохраняют имена протокола
-BaseHTTPRequestHandler. Проверка имён для остального кода включена.
-Объяснения в Python оформлены docstring. Этапы разработки сохранены
-отдельными Conventional Commits; проверить их можно через `git log --oneline`.
-
-## Структура и функции
-
-| Модуль | Ответственность и функции |
-|---|---|
-| physics.py | number: проверка числа; ball_at_time: состояние шарика; simulate: обработка задачи |
-| cli.py | main: входной файл, JSON в stdout, ошибки в stderr |
-| __main__.py | argument_parser: CLI-настройки; serve: жизненный цикл сервера; main: выбор команды |
-| schema.py | uid_value: ключ; validate: типы и поля; defaults: значения по умолчанию |
-| model.py | девять публичных методов из таблицы API; _new, _read, _collect: общая проверка и выборка |
-| routes.py | parse_values: query; resolve: путь и метод; dispatch: вызов модели |
-| server.py | make_server; ApiHandler.do_GET/do_POST/do_PUT/do_DELETE; handle_api; send_json; log_message |
-| client.py | девять методов модели; request: HTTP; ApiError: код и сообщение ошибки |
-| runner.py | execute: test/real; run_process: subprocess и обработка тайм-аута |
-| storage.py | FileStorage: __init__, all, write, close |
-| tiny_storage.py | TinyStorage: __init__, all, write, close |
-| tests/ | интеграционные тесты, одна общая машина MBT, аудит и проверка покрытия |
-
-Docstring рядом с каждой функцией описывает её назначение.
-
-## Настройки и сборка
-
-| Настройка | Значение по умолчанию | Где задаётся |
-|---|---|---|
-| Адрес сервера | 127.0.0.1 | --host |
-| Порт | 8024 | --port |
-| База данных | data/db.json | --database |
-| Адаптер | tinydb | --backend file или tinydb |
-| Тестовый режим | выключен | --test-mode |
-| Интерпретатор run.sh | .venv/bin/python | переменная PYTHON |
-| URL клиента | http://127.0.0.1:8024 | ApiClient(base_url=...) |
-| Тайм-аут клиента | 15 секунд | ApiClient(timeout=...) |
-| Тайм-аут subprocess | 10 секунд | runner.TIMEOUT_SECONDS |
-| Окно отчёта | 540 секунд | schema.WINDOW_SECONDS |
-| Часы модели | time.time | Model(clock=...) |
-| Ускорение по умолчанию | 9.81 м/с² | вход gravity / physics.DEFAULT_GRAVITY |
-
-Python-код не требует отдельной компиляции. Проверка синтаксиса и wheel:
-
-```sh
-.venv/bin/python -m compileall -q src
 make build
-```
+~~~
 
-Установка wheel: `.venv/bin/python -m pip install dist/*.whl`.
-В git не включаются виртуальное окружение, кеши, БД, coverage, wheel,
-PDF/DOCX, архивы и настройки редактора. Отчёт и архив комплекта находятся
-снаружи исходного репозитория. Файл `.github/workflows/check.yml`
-повторяет линтеры, тесты и два отдельных измерения MBT при push/PR.
+make lint проверяет pycodestyle, Ruff, Ruff Formatter, flake8,
+pep8-naming и собственный аудит: строки не длиннее 79 символов,
+функции не длиннее 40 строк, не более 7 аргументов, сложность
+не выше 10, без обычных комментариев и магических чисел в сравнениях.
+Имена do_GET/do_POST/do_PUT/do_DELETE обязательны по протоколу
+BaseHTTPRequestHandler и являются единственным исключением именования.
+
+tests/mbt_machine.py — RuleBasedStateMachine с независимыми словарями
+Member, Task и Response. Она через реальный HTTP-клиент проверяет
+девять маршрутов, ошибки, фильтрацию, дубликаты, перезапуск БД,
+границу 540 секунд и формулу отчёта. Для двух адаптеров идут
+раздельные прогоны. tests/check_mbt_coverage.py требует 100% строк
+и ветвей client.py, model.py, routes.py, server.py и все девять
+маршрутов в каждом MBT-прогоне. Общий процент ниже, потому что
+тестовый режим не запускает CLI, генератор штрих-кода и фоновый
+исполнитель. Ничто не исключено из измерения ради процента.
+
+Синтаксис можно проверить через
+.venv/bin/python -m compileall -q src. Сборка создаёт wheel в dist/.
+В репозиторий не входят виртуальное окружение, БД, coverage,
+сборочные артефакты, PDF/DOCX и архивы. История изменений оформлена
+Conventional/Scoped Commits. CI повторяет основные проверки.
+
+## Где что находится
+
+| Файл | Назначение |
+| --- | --- |
+| src/practice2/barcode.py | цифра, модули, SVG |
+| src/practice2/cli.py | отдельная CLI-утилита для subprocess |
+| src/practice2/__main__.py | команды compute и server |
+| src/practice2/runner.py | subprocess и фоновые задания |
+| src/practice2/server.py | заголовки и HTTP-ответы |
+| src/practice2/routes.py | таблица 23 и маршрутизация |
+| src/practice2/model.py | девять операций и отчёт |
+| src/practice2/client.py | HTTP-клиент с девятью методами |
+| src/practice2/schema.py | поля и проверка типов |
+| src/practice2/storage.py | файловая БД этапа 2 |
+| src/practice2/tiny_storage.py | TinyDB этапа 3 |
+| tests/ | обычные и модельные тесты |
 
 ## Источники
 
-- Сборник задания №2 ИКБО-71-24: с. 4–5, 83–86.
-- [Python http.server](https://docs.python.org/3/library/http.server.html).
-- [Python subprocess](https://docs.python.org/3/library/subprocess.html).
-- [Hypothesis Stateful testing](https://hypothesis.readthedocs.io/en/latest/stateful.html).
-- [coverage.py Branch coverage](https://coverage.readthedocs.io/en/latest/branch.html).
-- [TinyDB Usage](https://tinydb.readthedocs.io/en/latest/usage.html).
-- [PEP 8](https://peps.python.org/pep-0008/).
+- Сборник задания №2 ИКБО-71-24, с. 83–86.
+- GS1 General Specifications: https://ref.gs1.org/standards/genspecs/
+- Python http.server: https://docs.python.org/3/library/http.server.html
+- Python subprocess: https://docs.python.org/3/library/subprocess.html
+- Hypothesis Stateful: https://hypothesis.readthedocs.io/en/latest/stateful.html
+- coverage.py: https://coverage.readthedocs.io/en/latest/branch.html
+- TinyDB: https://tinydb.readthedocs.io/en/latest/usage.html

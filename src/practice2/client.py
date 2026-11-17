@@ -57,7 +57,7 @@ class ApiClient:
         return self.request("GET", "/api/read/member", {"uid": uid})
 
     def save_task(self, uid, values):
-        """Создать и синхронно выполнить задание."""
+        """Создать задание и запустить его фоновое выполнение."""
         return self.request("PUT", f"/api/save/task/{uid}", values)
 
     def collect_task(self, member, filters=None):

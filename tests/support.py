@@ -27,6 +27,7 @@ class ApiSession:
         """Открыть хранилище и HTTP-сервер на свободном порту."""
         self.storage = self.storage_class(self.path)
         model = Model(self.storage, test_mode=True, clock=lambda: self.now)
+        self.model = model
         self.server = make_server(model, port=0)
         self.thread = threading.Thread(
             target=self.server.serve_forever,
@@ -43,6 +44,7 @@ class ApiSession:
         self.server.shutdown()
         self.thread.join()
         self.server.server_close()
+        self.model.close()
         self.storage.close()
 
     def restart(self):

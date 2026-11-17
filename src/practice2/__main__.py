@@ -5,8 +5,8 @@ import json
 import sys
 from pathlib import Path
 
+from practice2.barcode import generate
 from practice2.model import Model
-from practice2.physics import simulate
 from practice2.server import make_server
 from practice2.storage import FileStorage
 from practice2.tiny_storage import TinyStorage
@@ -45,6 +45,7 @@ def serve(args):
         pass
     finally:
         server.server_close()
+        model.close()
         storage.close()
 
 
@@ -56,13 +57,7 @@ def main():
             serve(args)
         else:
             content = args.input_file.read_text(encoding="utf-8")
-            print(
-                json.dumps(
-                    simulate(json.loads(content)),
-                    ensure_ascii=False,
-                    allow_nan=False,
-                )
-            )
+            print(generate(json.loads(content)))
     except (OSError, ValueError, OverflowError) as error:
         print(str(error), file=sys.stderr)
         return 1

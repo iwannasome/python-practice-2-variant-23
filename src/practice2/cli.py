@@ -1,11 +1,11 @@
-"""Чтение входного JSON-файла и печать вычисленного JSON в stdout."""
+"""Чтение входного JSON-файла и печать SVG в stdout."""
 
 import argparse
 import json
 import sys
 from pathlib import Path
 
-from practice2.physics import simulate
+from practice2.barcode import generate
 
 SUCCESS = 0
 FAILURE = 1
@@ -18,8 +18,7 @@ def main():
     args = parser.parse_args()
     try:
         payload = json.loads(args.input_file.read_text(encoding="utf-8"))
-        result = simulate(payload)
-        print(json.dumps(result, ensure_ascii=False, allow_nan=False))
+        print(generate(payload))
     except (OSError, ValueError, OverflowError) as error:
         print(str(error), file=sys.stderr)
         return FAILURE

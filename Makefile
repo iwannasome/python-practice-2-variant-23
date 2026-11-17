@@ -27,4 +27,5 @@ mbt-tiny:
 	$(PYTHON) tests/check_mbt_coverage.py coverage-tiny.json
 
 build:
+	rm -rf build
 	$(PYTHON) -m build --wheel

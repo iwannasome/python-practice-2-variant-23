@@ -27,18 +27,10 @@ def test_all_methods_require_headers(tmp_path, method):
             connection.close()
 
 
-def test_compute_rejects_infinite_result(tmp_path):
-    """Команда compute не печатает невалидные Infinity и NaN."""
-    source = tmp_path / "large.json"
-    source.write_text(
-        json.dumps(
-            {
-                "time": 0,
-                "gravity": 1e308,
-                "balls": [{"height": 1}],
-            }
-        )
-    )
+def test_compute_rejects_bad_check_digit(tmp_path):
+    """Команда compute не печатает SVG с неверной цифрой EAN-13."""
+    source = tmp_path / "invalid.json"
+    source.write_text(json.dumps({"ean13": "4006381333932"}))
     process = subprocess.run(
         [sys.executable, "-m", "practice2", "compute", str(source)],
         capture_output=True,

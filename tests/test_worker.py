@@ -18,7 +18,7 @@ def test_mode_does_not_start_process(monkeypatch):
 
 def test_invalid_computation_is_recorded():
     """Ошибка CLI превращается в данные Response без падения сервера."""
-    result = execute('{"time": -1, "balls": []}')
+    result = execute('{"ean13": "invalid"}')
     assert result["status"] == "error"
     assert result["failure"]
     assert result["response"] == ""

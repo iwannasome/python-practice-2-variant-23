@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "python-practice-2-variant-23"
 version = "1.0.0"
-description = "Практика 2: HTTP API вычислительных задач, вариант 23"
+description = "Практика 2: асинхронная генерация EAN-13 SVG через HTTP API"
 requires-python = ">=3.11"
 dependencies = ["tinydb==4.8.2"]
 

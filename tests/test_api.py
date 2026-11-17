@@ -2,6 +2,7 @@
 
 import json
 import threading
+import time
 from contextlib import contextmanager
 
 import pytest
@@ -32,6 +33,7 @@ def running_api(path, test_mode=True):
         server.shutdown()
         thread.join()
         server.server_close()
+        model.close()
         store.close()
 
 
@@ -69,11 +71,17 @@ def test_required_headers(tmp_path, headers):
 
 
 def test_real_subprocess(tmp_path):
-    """Задача вычисляется отдельным процессом без shell."""
-    payload = {"time": 3, "balls": [{"height": 10}]}
+    """EAN-13 создаётся в фоне отдельным процессом без shell."""
+    payload = {"ean13": "590123412345"}
     with running_api(tmp_path / "db.json", test_mode=False) as client:
         client.save_member(1, {"ip": "::1", "locale": "ru"})
         client.save_task(1, {"member": 1, "input": json.dumps(payload)})
-        response = client.read_response(1)
+        deadline = time.monotonic() + 3
+        while time.monotonic() < deadline:
+            response = client.read_response(1)
+            if response["status"] != "pending":
+                break
+            time.sleep(0.01)
         assert response["status"] == "success"
-        assert json.loads(response["response"])["balls"][0]["height"] == ZERO
+        assert "<svg" in response["response"]
+        assert "5901234123457" in response["response"]

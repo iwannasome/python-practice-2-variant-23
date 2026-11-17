@@ -3,7 +3,7 @@
 import threading
 import time
 
-from practice2.runner import execute
+from practice2.runner import TaskScheduler
 from practice2.schema import (
     WINDOW_SECONDS,
     ConflictError,
@@ -23,6 +23,7 @@ class Model:
         self.test_mode = test_mode
         self.clock = clock
         self.lock = threading.RLock()
+        self.scheduler = TaskScheduler(storage, self.lock, clock, test_mode)
 
     def _read(self, entity, uid):
         """Получить одну запись, строго проверив ключ."""
@@ -66,19 +67,16 @@ class Model:
             return self._read("member", uid)
 
     def save_task(self, uid, values):
-        """Создать Task, выполнить CLI и сохранить Response."""
+        """Создать Task и Response, затем отправить CLI в фон."""
         with self.lock:
             row = self._new("task", uid, values)
             self._read("member", row["member"])
             row["launched"] = int(self.clock())
-            result = execute(row["input"], self.test_mode)
-            row["completed"] = int(self.clock())
-            response = dict(
-                result, uid=uid, task=uid, datetime=row["completed"]
-            )
+            response = self.scheduler.prepare(row)
             validate("response", response)
             self.storage.write("task", row)
             self.storage.write("response", response)
+            self.scheduler.start(uid, row["input"])
             return row
 
     def collect_task(self, member, filters=None):
@@ -115,3 +113,7 @@ class Model:
                 member = members[task["member"]]
                 result.add((member["ip"], response["duration"], task["tags"]))
             return [list(row) for row in sorted(result)]
+
+    def close(self):
+        """Дождаться фоновых задач до закрытия хранилища."""
+        self.scheduler.close()
