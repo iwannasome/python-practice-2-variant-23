@@ -9,6 +9,7 @@ from practice2.barcode import generate
 from practice2.model import Model
 from practice2.server import make_server
 from practice2.storage import FileStorage
+from practice2.tiny_storage import TinyStorage
 
 
 def argument_parser():
@@ -22,7 +23,7 @@ def argument_parser():
     server.add_argument("--port", type=int, default=8024)
     server.add_argument("--database", type=Path, default=Path("data/db.json"))
     server.add_argument(
-        "--backend", choices=("file",), default="file"
+        "--backend", choices=("file", "tinydb"), default="tinydb"
     )
     server.add_argument("--test-mode", action="store_true")
     return parser
@@ -30,7 +31,7 @@ def argument_parser():
 
 def serve(args):
     """Открыть хранилище и обслуживать запросы до Ctrl+C."""
-    storage_class = FileStorage
+    storage_class = TinyStorage if args.backend == "tinydb" else FileStorage
     storage = storage_class(args.database)
     model = Model(storage, test_mode=args.test_mode)
     server = make_server(model, args.host, args.port)

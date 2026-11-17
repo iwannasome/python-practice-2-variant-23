@@ -7,7 +7,7 @@ name = "python-practice-2-variant-23"
 version = "1.0.0"
 description = "Практика 2: асинхронная генерация EAN-13 SVG через HTTP API"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["tinydb==4.8.2"]
 
 [project.optional-dependencies]
 test = [
